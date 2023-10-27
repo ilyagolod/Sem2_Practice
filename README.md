@@ -2,14 +2,8 @@
 
 ## Usage
 
-1. Clone this repository.
+1. Launch the server: ```node server.js```
 
-2. Set the maximum download threads in `config.txt`.
+2. Open `index.html` in a web browser.
 
-3. Launch the server: ```node server.js```
-
-4. Open `index.html` in a web browser.
-
-5. Enter a keyword, click "Fetch URLs", and download content.
-
-Enjoy using the Keyword-Based Content Downloader!
+3. Enter a keyword, click "Fetch URLs", and download content.
