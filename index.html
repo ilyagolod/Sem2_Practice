@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Keyword-Based Content Downloader</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+        h1 {
+            color: #333;
+        }
+        label {
+            font-weight: bold;
+        }
+        #keyword {
+            padding: 5px;
+            font-size: 16px;
+        }
+        #fetchButton {
+            padding: 5px 10px;
+            background-color: #007BFF;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+        }
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+        ul li {
+            margin: 5px 0;
+        }
+        .download-button {
+            padding: 5px 10px;
+            background-color: #28A745;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+        }
+        .progress-container {
+            width: 100%;
+            height: 20px;
+            background-color: #eee;
+            margin: 5px 0;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        .progress-bar {
+            height: 100%;
+            background-color: #28A745;
+            transition: width 0.3s ease-in-out;
+        }
+        .hint {
+            font-style: italic;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+    <h1>Keyword-Based Content Downloader</h1>
+    
+    <label for="keyword">Enter a keyword:</label>
+    <input type="text" id="keyword" placeholder="Enter keyword">
+    <button id="fetchButton">Fetch URLs</button>
+
+    <div id="urlList">
+        <h2>Available URLs:</h2>
+        <ul id="urls"></ul>
+    </div>
+
+    <div id="downloadStatus">
+        <h2>Download Status:</h2>
+        <ul id="downloadResults"></ul>
+    </div>
+
+    <p class="hint">Hint: Available keywords are 'flowers', 'food', and 'sky'.</p>
+
+    <script>
+        const socket = new WebSocket('ws://localhost:3000'); // WebSocket server URL
+
+        socket.addEventListener('open', () => {
+            console.log('WebSocket connection established');
+        });
+
+        socket.addEventListener('message', (event) => {
+            const data = JSON.parse(event.data);
+
+            if (data.urls) {
+                const urlsList = document.getElementById('urls');
+                urlsList.innerHTML = '';
+                data.urls.forEach((url) => {
+                    const li = document.createElement('li');
+                    const downloadButton = document.createElement('button');
+                    const progressBarContainer = document.createElement('div');
+                    const progressBar = document.createElement('div');
+                    progressBarContainer.className = 'progress-container';
+                    progressBar.className = 'progress-bar';
+                    progressBar.style.width = '0%';
+                    downloadButton.textContent = 'Download';
+                    downloadButton.className = 'download-button';
+                    downloadButton.addEventListener('click', () => {
+                        downloadFile(url, progressBar);
+                    });
+                    li.textContent = url;
+                    li.appendChild(downloadButton);
+                    progressBarContainer.appendChild(progressBar);
+                    li.appendChild(progressBarContainer);
+                    urlsList.appendChild(li);
+                });
+            }
+
+            if (data.results) {
+                const downloadResults = document.getElementById('downloadResults');
+                downloadResults.innerHTML = '';
+                data.results.forEach((result) => {
+                    const li = document.createElement('li');
+                    if (result.error) {
+                        li.textContent = `Error downloading ${result.url}: ${result.error}`;
+                    } else {
+                        li.textContent = `Downloaded ${result.url} as ${result.filename}`;
+                    }
+                    downloadResults.appendChild(li);
+                });
+            }
+
+            if (data.message) {
+                alert(data.message);
+            }
+
+            if (data.error) {
+                alert(data.error);
+            }
+        });
+
+        function downloadFile(url, progressBar) {
+            const xhr = new XMLHttpRequest();
+            xhr.responseType = 'arraybuffer';
+
+            xhr.addEventListener('load', () => {
+                if (xhr.status === 200) {
+                    const filename = `downloaded_${Date.now()}.jpg`;
+                    const blob = new Blob([xhr.response], { type: 'application/octet-stream' });
+                    const link = document.createElement('a');
+                    link.href = window.URL.createObjectURL(blob);
+                    link.download = filename;
+                    link.click();
+                } else {
+                    alert(`Error downloading ${url}. Status code: ${xhr.status}`);
+                }
+            });
+
+            xhr.addEventListener('progress', (event) => {
+                if (event.lengthComputable) {
+                    const percentComplete = (event.loaded / event.total) * 100;
+                    progressBar.style.width = `${percentComplete}%`;
+                }
+            });
+
+            xhr.open('GET', url);
+            xhr.send();
+        }
+
+        const fetchButton = document.getElementById('fetchButton');
+        fetchButton.addEventListener('click', () => {
+            const keyword = document.getElementById('keyword').value;
+            if (keyword) {
+                socket.send(JSON.stringify({ keyword }));
+            }
+        });
+    </script>
+</body>
+</html>
